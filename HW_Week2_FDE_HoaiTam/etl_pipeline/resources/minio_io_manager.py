@@ -31,15 +31,14 @@ class MinIOIOManager(IOManager):
 
     def handle_output(self, context: OutputContext, obj: pd.DataFrame):
         key_name, tmp = self._get_path(context)
-        # 1. Tạo file tạm
         obj.to_parquet(tmp, index=False)
-        # 2. Upload lên MinIO
+        
         with connect_minio(self._config) as client:
             bucket = self._config["bucket"]
             if not client.bucket_exists(bucket):
                 client.make_bucket(bucket)
             client.fput_object(bucket, key_name, tmp)
-        # 3. Xóa file tạm
+        
         os.remove(tmp)
 
     def load_input(self, context: InputContext) -> pd.DataFrame:

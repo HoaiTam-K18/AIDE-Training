@@ -26,19 +26,18 @@ class PostgreSQLIOManager(IOManager):
 
     # TODO: your code here
     def handle_output(self, context: OutputContext, obj: pd.DataFrame):
-        schema, table = context.asset_key.path[-2],context.asset_key.path[-1]
+        schema, table = context.asset_key.path[-2], context.asset_key.path[-1]
         with connect_psql(self._config) as conn:
-        # insert new data
-            pass
+            # Ghi DataFrame vào PostgreSQL
+            obj.to_sql(
+                name=table,
+                con=conn,
+                schema=schema,
+                if_exists="replace", 
+                index=False,
+                method="multi",
+            )
 
-@io_manager(
-    config_schema={
-        "user": str,
-        "password": str,
-        "host": str,
-        "port": int,
-        "database": str,
-    }
-)
-def postgres_io_manager(init_context):
-    return PostgreSQLIOManager(init_context.resource_config)
+            context.log.info(f"Đã ghi {len(obj)} bản ghi vào bảng {schema}.{table} trong PostgreSQL.")
+
+
