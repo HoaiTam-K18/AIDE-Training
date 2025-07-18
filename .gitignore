@@ -8,3 +8,5 @@ notebook/
 .vscode
 
 .conda
+
+.DS_Store
