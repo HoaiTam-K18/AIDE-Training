@@ -1,0 +1,10 @@
+minio/
+postgresql/
+mysql/
+
+notebook/
+*.zip
+
+.vscode
+
+.conda
