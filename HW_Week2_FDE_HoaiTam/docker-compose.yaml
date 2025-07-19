@@ -15,6 +15,8 @@ services:
   de_psql:
     image: postgres:15
     container_name: de_psql
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - ./postgresql:/var/lib/postgresql/data
     ports:

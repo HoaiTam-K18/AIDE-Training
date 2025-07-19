@@ -15,7 +15,7 @@ from resources.psql_io_manager import PostgreSQLIOManager
     key_prefix=["gold", "ecom"],
     compute_kind="MinIO",
 )
-def sales_values_by_category(fact_sales: pd.DataFrame, dim_products: pd.DataFrame) -> Output[pd.DataFrame]:
+def gold_sales_values_by_category(fact_sales: pd.DataFrame, dim_products: pd.DataFrame) -> Output[pd.DataFrame]:
     # Tính doanh thu & số hóa đơn theo ngày và sản phẩm
     daily = fact_sales.copy()
     daily["order_purchase_timestamp"] = pd.to_datetime(daily["order_purchase_timestamp"])
@@ -53,25 +53,25 @@ def sales_values_by_category(fact_sales: pd.DataFrame, dim_products: pd.DataFram
 
 @multi_asset(
     ins={
-        "sales_values_by_category": AssetIn(
+        "gold_sales_values_by_category": AssetIn(
             key_prefix=["gold", "ecom"],
         )
     },
     outs={
-        "warehouse_sales_values_by_category": AssetOut(
+        "sales_values_by_category": AssetOut(
             io_manager_key="psql_io_manager",
-            key_prefix=["warehouse", "public"],
+            key_prefix=["warehouse", "gold"],
         )
     },
     compute_kind="PostgreSQL"
 )
-def warehouse_sales_values_by_category(sales_values_by_category) -> Output[pd.DataFrame]:
+def sales_values_by_category(gold_sales_values_by_category) -> Output[pd.DataFrame]:
     return Output(
-        sales_values_by_category,
+        gold_sales_values_by_category,
         metadata={
             "schema": "gold",
             "table": "sales_values_by_category",
-            "records counts": len(sales_values_by_category),
+            "records counts": len(gold_sales_values_by_category),
         },
     )
 
@@ -111,8 +111,10 @@ defs = Definitions(
         dim_products,
         fact_sales,
         # Gold
-        sales_values_by_category,
-        warehouse_sales_values_by_category
+        gold_sales_values_by_category,
+
+        # Warehouse
+        sales_values_by_category
     ],
     resources={
         "mysql_io_manager": MySQLIOManager(MYSQL_CONFIG),
