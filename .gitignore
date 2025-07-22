@@ -10,3 +10,5 @@ notebook/
 .conda
 
 .DS_Store
+
+.*
