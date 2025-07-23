@@ -20,3 +20,20 @@ to_mysql:
 
 to_mysql_root:
 	docker exec -it de_mysql mysql -u"root" -p"${MYSQL_ROOT_PASSWORD}" ${MYSQL_DATABASE}
+
+
+FILES ?= olist_products_dataset.csv product_category_name_translation.csv olist_orders_dataset.csv olist_order_items_dataset.csv olist_order_payments_dataset.csv
+CSV_DIR ?= /tmp/brazilian-ecommerce
+
+load_to_mysql:
+	@for file in $(FILES); do \
+	  echo "Loading $$file..."; \
+	  docker exec -it de_mysql mysql --local-infile=1 -u"${MYSQL_USER}" -p"${MYSQL_PASSWORD}" ${MYSQL_DATABASE} -e "\
+	    LOAD DATA LOCAL INFILE '$(CSV_DIR)/$$file' \
+	    INTO TABLE $${file%.csv} \
+	    FIELDS TERMINATED BY ',' \
+	    LINES TERMINATED BY '\n' \
+	    IGNORE 1 ROWS;"; \
+	done; \
+	echo "Done loading all files!"
+
