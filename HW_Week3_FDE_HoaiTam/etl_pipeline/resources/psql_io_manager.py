@@ -31,38 +31,42 @@ class PostgreSQLIOManager(IOManager):
         table = context.asset_key.path[-1]
         tmp_tbl = f"{table}_tmp_{datetime.now().strftime('%Y_%m_%d')}"
 
+        # Metadata
         primary_keys = (context.metadata or {}).get("primary_keys", [])
         ls_columns = (context.metadata or {}).get("columns", obj.columns.tolist())
         datetime_columns = (context.metadata or {}).get("datetime_columns", [])
+
+        # Format datetime columns
         for col in datetime_columns:
             if col in obj.columns:
                 obj[col] = pd.to_datetime(obj[col], errors="coerce")
 
         with connect_psql(self._config) as db_conn:
             with db_conn.connect() as cursor:
-                # Create temp table
+                # Tạo bảng tạm giống bảng chính
                 cursor.execute(
-                    text(f"CREATE TEMP TABLE IF NOT EXISTS {tmp_tbl} (LIKE {schema}.{table})")
+                    text(f'CREATE TEMP TABLE IF NOT EXISTS "{tmp_tbl}" (LIKE {schema}."{table}" INCLUDING ALL)')
                 )
 
-                # Insert new data to temp table
-                obj[ls_columns].to_sql(
-                    name=tmp_tbl,
-                    con=db_conn,
-                    schema=schema,
-                    if_exists="replace",
-                    index=False,
-                    chunksize=10000,
-                    method="multi",
-                )
+            # Đẩy dữ liệu vào bảng tạm
+            obj[ls_columns].to_sql(
+                name=tmp_tbl,
+                con=db_conn,
+                schema=schema,
+                if_exists="replace",
+                index=False,
+                chunksize=10000,
+                method="multi",
+            )
 
             with db_conn.connect() as cursor:
-                # Check temp data count
-                result = cursor.execute(text(f"SELECT COUNT(*) FROM {schema}.{tmp_tbl}"))
+                # Kiểm tra số bản ghi bảng tạm
+                result = cursor.execute(text(f'SELECT COUNT(*) FROM {schema}."{tmp_tbl}"'))
                 for row in result:
-                    print(f"Temp table records: {row}")
+                    context.log.info(f"Temp table records: {row[0]}")
 
-                # Upsert data
+                # UPSERT
+                # upsert data
                 if len(primary_keys) > 0:
                     conditions = " AND ".join(
                         [
@@ -71,23 +75,25 @@ class PostgreSQLIOManager(IOManager):
                         ]
                     )
                     command = f"""
-                    BEGIN TRANSACTION;
+                    BEGIN;
                     DELETE FROM {schema}.{table}
                     USING {tmp_tbl}
                     WHERE {conditions};
                     INSERT INTO {schema}.{table}
                     SELECT * FROM {tmp_tbl};
-                    END TRANSACTION;
+                    COMMIT;
                     """
                 else:
                     command = f"""
-                    BEGIN TRANSACTION;
+                    BEGIN;
                     TRUNCATE TABLE {schema}.{table};
+                    INSERT INTO {schema}.{table}
                     SELECT * FROM {tmp_tbl};
-                    END TRANSACTION;
+                    COMMIT;
                     """
 
-                cursor.execute(text(command))
-                # Drop temp table
-                cursor.execute(text(f"DROP TABLE IF EXISTS {tmp_tbl}"))
 
+                # Thực thi UPSERT
+                cursor.execute(text(command))
+                # Dọn bảng tạm
+                cursor.execute(text(f'DROP TABLE IF EXISTS {schema}."{tmp_tbl}"'))
