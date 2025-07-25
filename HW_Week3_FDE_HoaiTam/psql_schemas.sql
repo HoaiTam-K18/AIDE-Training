@@ -41,9 +41,7 @@ CREATE TABLE olist_order_items_dataset (
     freight_value REAL,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW(),
-    PRIMARY KEY (order_id, order_item_id, product_id, seller_id),
-    FOREIGN KEY (order_id) REFERENCES olist_orders_dataset(order_id),
-    FOREIGN KEY (product_id) REFERENCES olist_products_dataset(product_id)
+    PRIMARY KEY (order_id, order_item_id, product_id, seller_id)
 );
 
 DROP TABLE IF EXISTS olist_order_payments_dataset;

@@ -74,16 +74,15 @@ def dwh_olist_products_dataset(context, upstream) -> Output[pd.DataFrame]:
 )
 def bronze_olist_orders_dataset(context) -> Output[pd.DataFrame]:
     table = "olist_orders_dataset"
-    sql_stm = f"SELECT * FROM {table}"
 
     try:
         partition_date_str = context.asset_partition_key_for_output()
         context.log.info(f"Partition key: {partition_date_str}")
         # TODO: your code here, sql_stm query by partition?
-        # sql_stm = f"""
-        #     SELECT * FROM {table}
-        #     WHERE DATE(order_purchase_timestamp) = '{partition_date_str}'
-        # """
+        sql_stm = f"""
+            SELECT * FROM {table}
+            WHERE DATE(order_purchase_timestamp) = '{partition_date_str}'
+        """
     except Exception:
         context.log.info(f"{table} has no partition key!")
 
