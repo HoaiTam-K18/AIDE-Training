@@ -3,6 +3,7 @@ postgresql/
 mysql/
 
 notebook/
+venv/
 *.zip
 
 .vscode
